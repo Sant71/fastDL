@@ -1,0 +1,357 @@
+/*-----------------------------------------------------------------------------------------------------
+				[Fire M4A1]
+				
+		V1.0: First Release
+		V1.1: Tracer is always show
+		V1.2: Changed The Tracer
+		V1.3: Fixed More Bugs
+		V1.4: Removed the sprite Folder and fix the color and light of tracer
+		V1.5: Fixed The W_ Model Bug, I can Now Support For ZP4.3 + ZPA + ZPSP For Free :)
+------------------------------------------------------------------------------------------------------*/
+
+/*-------------------------------------------=[Includes]=---------------------------------------------*/
+#include <amxmodx>
+#include <cstrike>
+#include <fakemeta>
+#include <hamsandwich>
+#include <zombie_plague_special>
+
+/*-------------------------------=[Variables, Conts, Defines & Cvars]=--------------------------------*/
+
+new FM_V_MODEL[64] = "models/zombie_plague/v_fire_m4a1.mdl"
+new FM_P_MODEL[64] = "models/zombie_plague/p_fire_m4a1.mdl"
+new FM_W_MODEL[64] = "models/zombie_plague/w_fire_m4a1.mdl"
+
+new cvar_custommodel, cvar_uclip, cvar_f_duration, cvar_oneround, cvar_dmgmultiplier, cvar_limit
+new g_itemid, g_firem4[33], tracer_spr, g_buy_limit, g_maxplayers
+
+#define ITEM_NAME "Fire M4A1"
+#define ITEM_COST 40
+
+#define is_user_valid_alive(%1) (1 <= %1 <= g_maxplayers && is_user_alive(%1))
+
+new const GUNSHOT_DECALS[] = { 41, 42, 43, 44, 45 };
+
+/*---------------------------------------=[Plugin Register]=-----------------------------------------*/
+public plugin_init()
+{	
+	// Register The Plugin
+	register_plugin("[ZPSP] Extra: Fire M4A1", "1.3", "ShaunCraft")
+	
+	// Register Zombie Plague extra item
+	g_itemid = zp_register_extra_item(ITEM_NAME, ITEM_COST, ZP_TEAM_HUMAN)
+	
+	// Death Msg
+	register_event("DeathMsg", "Death", "a")
+	register_event("CurWeapon", "event_CurWeapon", "b", "1=1") 
+	register_event("CurWeapon","checkWeapon","be","1=1")
+	register_event("HLTV", "event_round_start", "a", "1=0", "2=0")
+	register_event("CurWeapon", "fw_TraceAttack", "be", "1=1", "3>0")
+	
+	// Forwards
+	register_forward(FM_SetModel, "fw_SetModel")
+	
+	// Ham TakeDamage
+	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage")
+	RegisterHam(Ham_Item_AddToPlayer, "weapon_m4a1", "fw_AddToPlayer")
+	RegisterHam(Ham_TraceAttack, "worldspawn", "fw_TraceAttack", 1)
+	RegisterHam(Ham_TraceAttack, "func_breakable", "fw_TraceAttack", 1)
+	RegisterHam(Ham_TraceAttack, "func_wall", "fw_TraceAttack", 1)
+	RegisterHam(Ham_TraceAttack, "func_door", "fw_TraceAttack", 1)
+	RegisterHam(Ham_TraceAttack, "func_door_rotating", "fw_TraceAttack", 1)
+	RegisterHam(Ham_TraceAttack, "func_plat", "fw_TraceAttack", 1)
+	RegisterHam(Ham_TraceAttack, "func_rotating", "fw_TraceAttack", 1)
+	
+	// Cvars
+	cvar_dmgmultiplier = register_cvar("zp_firem4_dmg_multiplier", "2")    	  // Elemental Damage Multipler
+	cvar_custommodel = register_cvar("zp_firem4_custom_model", "1")  		  // Custom Model (0 - Off | 1 - On)
+	cvar_uclip = register_cvar("zp_firem4_unlimited_clip", "1")        		  // Unlimited Clip (0 - Off | 1 - On)    
+	cvar_f_duration = register_cvar("zp_firem4_fire_time", "12")		// Time will be burning
+	cvar_oneround = register_cvar("zp_firem4_one_round", "1")		// The Elemental should be 1 round? (1 - On | 0 - Off)
+	cvar_limit = register_cvar("zp_firem4_buy_limit", "3")		// Buy Limit Per Round
+	
+	g_maxplayers = get_maxplayers()
+}
+
+/*------------------------------------------=[Precaches]=--------------------------------------------*/
+public plugin_precache()
+{
+	precache_model(FM_V_MODEL)
+	precache_model(FM_P_MODEL)
+	precache_model(FM_W_MODEL)
+	
+	tracer_spr = precache_model("sprites/xenobeam.spr")
+}
+
+/*---------------------------------------=[Bug Prevention]=-----------------------------------------*/
+public client_connect(id) g_firem4[id] = false
+public client_disconnect(id) g_firem4[id] = false
+public Death() g_firem4[read_data(2)] = false
+public zp_user_infected_post(id) g_firem4[id] = false
+public zp_user_humanized_post(id) g_firem4[id] = false
+
+public event_round_start() 
+{
+	g_buy_limit = 0
+	
+	if(get_pcvar_num(cvar_oneround))
+	{
+		for(new id = 1; id <= g_maxplayers; id++) 
+			g_firem4[id] = false
+	}		
+}
+
+/*----------------------------------------=[Custom Model]=-------------------------------------------*/
+public event_CurWeapon(id)
+{
+	if (!is_user_valid_alive(id) || zp_get_user_zombie(id)) return PLUGIN_HANDLED
+	
+	new g_Weapon = read_data(2)
+	if (g_Weapon == CSW_M4A1 && g_firem4[id] && get_pcvar_num(cvar_custommodel))
+	{
+		set_pev(id, pev_viewmodel2, FM_V_MODEL)
+		set_pev(id, pev_weaponmodel2, FM_P_MODEL)
+	}
+	return PLUGIN_CONTINUE
+}
+
+/*----------------------------------------=[Unlimited Clip]=------------------------------------------*/
+public checkWeapon(id)
+{
+	new plrClip, plrAmmo, plrWeap[32], plrWeapId
+
+	plrWeapId = get_user_weapon(id, plrClip , plrAmmo)
+	
+	if (plrWeapId == CSW_M4A1 && g_firem4[id]) event_CurWeapon(id)
+	else return PLUGIN_CONTINUE
+	
+	if (plrClip == 0 && get_pcvar_num(cvar_uclip))
+	{
+		// If the user is out of ammo..
+		get_weaponname(plrWeapId, plrWeap, 31)
+		give_item(id, plrWeap)
+		engclient_cmd(id, plrWeap)  // Get the name of their weapon
+		engclient_cmd(id, plrWeap)
+		engclient_cmd(id, plrWeap)
+	}
+	return PLUGIN_HANDLED
+}
+
+/*-----------------------------------------=[World Model]=-------------------------------------------*/
+public fw_SetModel(entity, model[])
+{
+	
+	static szClassName[33]; pev(entity, pev_classname, szClassName, charsmax(szClassName))
+	if(!equal(szClassName, "weaponbox")) return FMRES_IGNORED;
+	
+	static owner, wpn
+	owner = pev(entity, pev_owner)
+	wpn = find_ent_by_owner(-1, "weapon_m4a1", entity)
+	
+	if(g_firem4[owner] && pev_valid(wpn))
+	{
+		g_firem4[owner] = false
+		set_pev(wpn, pev_impulse, 324584)
+		engfunc(EngFunc_SetModel, entity, FM_W_MODEL)
+		
+		return FMRES_SUPERCEDE
+	}
+	return FMRES_IGNORED
+}
+
+public fw_AddToPlayer(wpn, id)
+{
+	if(pev_valid(wpn) && is_user_connected(id) && pev(wpn, pev_impulse) == 324584)
+	{
+		g_firem4[id] = true
+		set_pev(wpn, pev_impulse, 0)
+		return HAM_HANDLED
+	}
+	return HAM_IGNORED
+}
+
+/*-----------------------------------------=[Take Damage]=-------------------------------------------*/
+public fw_TakeDamage(victim, inflictor, attacker, Float:damage)
+{
+	if(is_user_valid_alive(attacker) && !zp_get_user_zombie(attacker) && get_user_weapon(attacker) == CSW_M4A1 && g_firem4[attacker] && is_user_valid_alive(victim) && zp_get_user_zombie(victim))
+	{
+		SetHamParamFloat(4, damage * get_pcvar_float(cvar_dmgmultiplier))
+		
+		switch(random_num(1,100))
+		{
+			
+			case 31..100: 
+			{
+				zp_set_user_burn(victim, true) 
+				set_task(get_pcvar_float(cvar_f_duration),"removefire",victim)
+			}
+		}
+	}
+}
+
+/*----------------------------------------=[Weapon Tracer]=------------------------------------------*/
+public fw_TraceAttack(iEnt, iAttacker, Float:flDamage, Float:fDir[3], ptr, iDamageType)
+{
+	if(!is_user_alive(iAttacker))
+		return
+
+	new g_currentweapon = get_user_weapon(iAttacker)
+
+	if(g_currentweapon != CSW_M4A1) return
+	
+	if(!g_firem4[iAttacker]) return
+
+	static Float:end[3]
+	get_tr2(ptr, TR_vecEndPos, end)
+	
+	if(iEnt)
+	{
+		message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+		write_byte(TE_DECAL)
+		engfunc(EngFunc_WriteCoord, end[0])
+		engfunc(EngFunc_WriteCoord, end[1])
+		engfunc(EngFunc_WriteCoord, end[2])
+		write_byte(GUNSHOT_DECALS[random_num (0, sizeof GUNSHOT_DECALS -1)])
+		write_short(iEnt)
+		message_end()
+	}
+	else
+	{
+		message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+		write_byte(TE_WORLDDECAL)
+		engfunc(EngFunc_WriteCoord, end[0])
+		engfunc(EngFunc_WriteCoord, end[1])
+		engfunc(EngFunc_WriteCoord, end[2])
+		write_byte(GUNSHOT_DECALS[random_num (0, sizeof GUNSHOT_DECALS -1)])
+		message_end()
+	}
+	message_begin(MSG_BROADCAST, SVC_TEMPENTITY )
+	write_byte(TE_BEAMENTPOINT)
+	write_short(iAttacker | 0x1000)
+	engfunc(EngFunc_WriteCoord, end[0])
+	engfunc(EngFunc_WriteCoord, end[1])
+	engfunc(EngFunc_WriteCoord, end[2])
+	write_short(tracer_spr)
+	write_byte(0) // framerate
+	write_byte(0) // framerate
+	write_byte(1) // life
+	write_byte(23)  // width
+	write_byte(0)// noise
+	write_byte(200)// r, g, b
+	write_byte(80)// r, g, b
+	write_byte(4)// r, g, b
+	write_byte(200)	// brightness
+	write_byte(5)	// speed
+	message_end()
+
+}
+/*----------------------------------=[Action on Choose the Item]=------------------------------------*/
+public zp_extra_item_selected_pre(player, itemid)
+{
+	if (itemid == g_itemid) 
+	{
+		new szText[16]
+		formatex(szText, charsmax(szText), "\r[%d/%d]", g_buy_limit, get_pcvar_num(cvar_limit))
+		zp_extra_item_textadd(szText)
+
+		if(g_firem4[player] || g_buy_limit >= get_pcvar_num(cvar_limit))
+			return ZP_PLUGIN_HANDLED
+
+	}
+	return PLUGIN_CONTINUE
+}
+
+public zp_extra_item_selected(player, itemid)
+{
+	if (itemid == g_itemid) 
+	{
+		g_firem4[player] = true
+		client_printcolor(player,"/g[ZP]/y You Bought the /tFire /gM4A1")
+		ham_strip_weapon(player, "weapon_m4a1")
+		give_item(player, "weapon_m4a1")
+		g_buy_limit++
+	}
+}
+
+
+/*------------------------------------=[Remove Fire]=-------------------------------------*/
+public removefire(plr) zp_set_user_burn(plr, false)
+
+/*--------------------------------------------=[Stocks]=---------------------------------------------*/
+stock find_ent_by_owner(index, const classname[], owner, jghgtype = 0) {
+	new strtype[11] = "classname", ent = index;
+	switch (jghgtype) {
+		case 1: strtype = "target";
+		case 2: strtype = "targetname";
+	}
+
+	while ((ent = engfunc(EngFunc_FindEntityByString, ent, strtype, classname)) && pev(ent, pev_owner) != owner) {}
+
+	return ent;
+}
+stock give_item(index, const item[]) 
+{
+	if (!equal(item, "weapon_", 7) && !equal(item, "ammo_", 5) && !equal(item, "item_", 5) && !equal(item, "tf_weapon_", 10))
+		return 0;
+
+	new ent = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, item));
+	
+	if (!pev_valid(ent))
+		return 0;
+
+	new Float:origin[3];
+	pev(index, pev_origin, origin);
+	set_pev(ent, pev_origin, origin);
+	set_pev(ent, pev_spawnflags, pev(ent, pev_spawnflags) | SF_NORESPAWN);
+	dllfunc(DLLFunc_Spawn, ent);
+
+	new save = pev(ent, pev_solid);
+	dllfunc(DLLFunc_Touch, ent, index);
+	if (pev(ent, pev_solid) != save)
+		return ent;
+
+	engfunc(EngFunc_RemoveEntity, ent);
+
+	return -1;
+}
+
+stock client_printcolor(const id,const input[], any:...)
+{
+	new msg[191], players[32], count = 1; vformat(msg,190,input,3);
+	replace_all(msg,190,"/g","^4");    // green
+	replace_all(msg,190,"/y","^1");    // normal
+	replace_all(msg,190,"/t","^3");    // team
+	    
+	if (id) players[0] = id; else get_players(players,count,"ch");
+	    
+	for (new i=0;i<count;i++)
+	{
+		if (is_user_connected(players[i]))
+		{
+			message_begin(MSG_ONE_UNRELIABLE,get_user_msgid("SayText"),_,players[i]);
+			write_byte(players[i]);
+			write_string(msg);
+			message_end();
+		}
+	}
+} 
+stock ham_strip_weapon(id,weapon[])
+{
+    if(!equal(weapon,"weapon_",7)) return 0
+
+    new wId = get_weaponid(weapon)
+    if(!wId) return 0
+
+    new wEnt
+    while((wEnt = engfunc(EngFunc_FindEntityByString,wEnt,"classname",weapon)) && pev(wEnt,pev_owner) != id) {}
+    if(!wEnt) return 0
+
+    if(get_user_weapon(id) == wId) ExecuteHamB(Ham_Weapon_RetireWeapon,wEnt)
+
+    if(!ExecuteHamB(Ham_RemovePlayerItem,id,wEnt)) return 0
+    ExecuteHamB(Ham_Item_Kill,wEnt)
+
+    set_pev(id,pev_weapons,pev(id,pev_weapons) & ~(1<<wId))
+
+    return 1
+}
