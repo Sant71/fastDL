@@ -1,0 +1,34 @@
+Make sure to complete all
+skins listed below and put
+them in the 'alt' folder
+==========================
+p_knife
+v_ak47
+v_aug
+v_awp
+v_c4
+v_deagle
+v_elite
+v_famas
+v_fiveseven
+v_flashbang
+v_g3sg1
+v_galil
+v_glock18
+v_hegrenade
+v_knife
+v_m249
+v_m3
+v_m4a1
+v_mac10
+v_mp5
+v_p228
+v_p90
+v_scout
+v_sg550
+v_sg552
+v_smokegrenade
+v_tmp
+v_ump45
+v_usp
+v_xm1014
