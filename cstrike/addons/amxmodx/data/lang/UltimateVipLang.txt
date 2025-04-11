@@ -1,0 +1,27 @@
+[en]
+VIPMEDIC_NOACCESS = !t[!gAMXX!t] !tYou Have No Access For This Command .
+VIPMEDIC_MAXHEALTH = !t[!gAMXX!t] !tYou Cant Increase Your Health Above %d .
+VIPMEDIC_LOWMONEY = !t[!gAMXX!t] !tYou Dont Have Enough Money .
+VIPMEDIC_GOTHEALTH = !t[!gAMXX!t] !gYou Got %d Hp .
+
+
+VIPMENU_MAXUSES = %s You Can Use VipMenu Once In Round
+VIPMENU_NOACCESS = %s You Dont Have Access To This Menu
+
+VIPMENU_TITLE = \yVip Menu : 
+VIPMENU_AK47 = \w AK47 + Deagle
+VIPMENU_M4A1 = \w M4A1 + Deagle
+VIPMENU_AWP = \w Awp + Deagle
+
+VIPMENU_CHOOSEDAKCT = %s !tYou Got !gAK47 !t+ !gDEAGLE !t+ !gDefuser Kit !t.
+VIPMENU_CHOOSEDM4CT = %s !tYou Got !gM4A1 !t+ !gDEAGLE !t+ !gDefuser Kit !t.
+VIPMENU_CHOOSEDAWPCT = %s !tYou Got !gAWP !t+ !gDEAGLE !t+ !gDefuser Kit !t.
+VIPMENU_CHOOSEDAKTE = %s !tYou Got !gAK47 !t+ !gDEAGLE !t.
+VIPMENU_CHOOSEDM4TE = %s !tYou Got !gM4A1 !t+ !gDEAGLE !t.
+VIPMENU_CHOOSEDAWPTE = %s !tYou Got !gAWP !t+ !gDEAGLE !t.
+
+
+VIPPRIVILAGE_GOTWHAT = !g[%s] You Got !tHe, 2xFlash, Smoke !gAnd Hp : !t%d !g|| Armor : !t%d
+
+
+VIPREWARDS_AMOUNTSENT = !t[!gVip Rewards!t] !gYou Got %d Reward .

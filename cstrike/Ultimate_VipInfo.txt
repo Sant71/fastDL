@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Vip Privilages</title>
+	<style>
+	body {
+	background-color :white;
+	}
+	h1 {
+	color :yellow;
+	font-family :'Brush Script MT', cursive;
+	}
+	li {
+	color :black;
+	font-family :'Brush Script MT', cursive;
+	font-size: 24px;
+	}
+	p {
+	color :black;
+	font-family :'Brush Script MT', cursive;
+	font-size: 18px;
+	}
+	</style>
+    </head>
+    <body>
+        <h1 style = "color :yellow; font-family :'Brush Script MT', cursive;"><center><b>Vip Privilages</b><br><br></center></h1>
+	<ul>
+		<li>You Will Get Every Round 150 Hp And 100 Armor And All Grenades</li>
+		<li>A Weapons Menu Will Show Every Round And When You Say "/vipmenu" Except Round 1</li>
+		<li>You Can Use Syringe And Heal Yourself by "/medic" comand</li>
+		<li>You Will Have Multijump</li>
+		<li>Your Damage Will Be Increased</li>
+		<li>You Will See Your Name In Vips Online</li>
+		<li>You Will Get Money Rewards For Every Kill Or Bomb Plant And Defuse</li>
+		<li>You Will Have A Special Skin</li>
+		<li>You Will Have A Vip Tag In Scoreboard<br><br></li>
+	</ul>
+	<p><b>Vip Cost</b> : 1xBoost</p>
+	<p><b>Server Forum</b> : Soon</p>
+    </body>
+</html>
